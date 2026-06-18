@@ -66,16 +66,16 @@ def extract_slots(question: str, shape: ShapeId) -> dict:
 
     # 1. & 2. Handle specific extraction logic based on shape
     
-    # Extract Cuisine (Needed for Q3, Q4, Q5, Q6, Q9, Q11, Q12)
-    if shape in [ShapeId.Q3, ShapeId.Q4, ShapeId.Q5, ShapeId.Q6, ShapeId.Q9, ShapeId.Q11, ShapeId.Q12]:
+    # Extract Cuisine (Needed for Q3, Q4, Q5, Q6, Q9, Q11, Q12 + Tier 1: Q17, Q18, Q19)
+    if shape in [ShapeId.Q3, ShapeId.Q4, ShapeId.Q5, ShapeId.Q6, ShapeId.Q9, ShapeId.Q11, ShapeId.Q12, ShapeId.Q17, ShapeId.Q18, ShapeId.Q19]:
         slots["cuisine"] = find_canonical(question, CUISINES)
 
-    # Extract Ingredient (Needed for Q1, Q5, Q6, Q8, Q13, Q14)
-    if shape in [ShapeId.Q1, ShapeId.Q5, ShapeId.Q6, ShapeId.Q8, ShapeId.Q13]:
+    # Extract Ingredient (Needed for Q1, Q5, Q6, Q8, Q13, Q14 + Tier 1: Q19)
+    if shape in [ShapeId.Q1, ShapeId.Q5, ShapeId.Q6, ShapeId.Q8, ShapeId.Q13, ShapeId.Q19]:
         slots["ingredient"] = find_canonical(question, INGREDIENTS)
 
-    # Extract Author (Needed for Q2, Q8)
-    if shape in [ShapeId.Q2, ShapeId.Q8] and nlp:
+    # Extract Author (Needed for Q2, Q8 + Tier 1: Q16, Q18, Q19, Q20)
+    if shape in [ShapeId.Q2, ShapeId.Q8, ShapeId.Q16, ShapeId.Q18, ShapeId.Q19, ShapeId.Q20] and nlp:
         doc = nlp(question)
         authors = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
         if authors:
@@ -86,8 +86,8 @@ def extract_slots(question: str, shape: ShapeId) -> dict:
             if match:
                 slots["author"] = match.group(1)
 
-    # Extract Technique (Needed for Q7, Q15)
-    if shape in [ShapeId.Q7, ShapeId.Q15]:
+    # Extract Technique (Needed for Q7, Q15 + Tier 1: Q16, Q17)
+    if shape in [ShapeId.Q7, ShapeId.Q15, ShapeId.Q16, ShapeId.Q17]:
         slots["technique"] = find_canonical(question, TECHNIQUES)
 
     # Special Case Q10: Numeric threshold

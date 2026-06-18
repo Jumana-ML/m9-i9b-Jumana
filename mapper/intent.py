@@ -47,21 +47,66 @@ def detect_shape(question: str) -> ShapeId | None:
     q = question.lower()
 
     # Define vocabulary hints based on the Integration Guide
-    # These help distinguish between direct and hierarchical queries
     hierarchical_cuisines = {"asian", "chinese"}
-    direct_cuisines = {"italian", "sichuan"} # Sichuan is direct in Q5 but hierarchical in Q12/Q4 context
+    direct_cuisines = {"italian", "sichuan"}
+    techniques_list = {"wok", "baking", "roasting", "grilling", "technique", "require"}
     
     # Check for core entities/keywords presence
-    has_author_cue = "by author" in q or "by " in q or "authors of" in q
-    has_ingredient_cue = "use" in q or "with" in q
+    has_author_cue = "by author" in q or ("by " in q and "popularity" not in q and "ranked" not in q) or "authors of" in q
+    
+    has_ingredient_cue = ("use" in q or "with" in q) and not any(t in q for t in ["baking", "roasting", "grilling", "ingredients used in"])
+    
     has_cuisine_cue = any(c in q for c in (hierarchical_cuisines | direct_cuisines))
-    has_technique_cue = "require" in q or "tagged with" in q or "technique" in q
-
+    has_technique_cue = any(t in q for t in techniques_list) or "tagged with" in q
     # 2. Apply rules in priority order (Specific -> General)
 
-    # Q14: Negation (but not) - Must be before Q1/Q5/Q6/Q8
+    # Q14: Negation (but not) - Must be before Q1/Q5/Q6/Q8/Q19
     if "but not" in q or "without" in q:
         return ShapeId.Q14
+    
+    # Q11: Inverse - Ingredients used in [Cuisine]
+    if "ingredients used in" in q:
+        return ShapeId.Q11
+
+    # Q12: Inverse - Authors of [Cuisine]
+    if "authors of" in q:
+        return ShapeId.Q12
+        
+    # Q20 (Tier 1): Ingredients by specific Author
+    if "ingredients by" in q:
+        return ShapeId.Q20
+
+    # Q9: Sorting (Popularity)
+    if "ranked by popularity" in q or "most popular" in q:
+        return ShapeId.Q9
+
+    # Q19 (Tier 1): Triple Conjunction (Cuisine + Author + Ingredient)
+    if has_cuisine_cue and has_author_cue and has_ingredient_cue:
+        return ShapeId.Q19
+
+    # Q8: Conjunction (Author + Ingredient)
+    if has_author_cue and has_ingredient_cue:
+        return ShapeId.Q8
+
+    # Q18 (Tier 1): Conjunction (Cuisine + Author)
+    if has_cuisine_cue and has_author_cue:
+        return ShapeId.Q18
+
+    # Q16 (Tier 1): Conjunction (Author + Technique)
+    if has_author_cue and has_technique_cue:
+        return ShapeId.Q16
+
+    # Q17 (Tier 1): Conjunction (Cuisine + Technique)
+    if has_cuisine_cue and has_technique_cue:
+        return ShapeId.Q17
+
+    # Q6: Conjunction (Hierarchical)
+    if any(hc in q for hc in hierarchical_cuisines) and has_ingredient_cue:
+        return ShapeId.Q6
+
+    # Q5: Conjunction (Direct)
+    if any(dc in q for dc in direct_cuisines) and has_ingredient_cue:
+        return ShapeId.Q5
 
     # Q15: Optional tagging
     if "optionally tagged" in q:
@@ -71,33 +116,9 @@ def detect_shape(question: str) -> ShapeId | None:
     if "or any subtype" in q or "or any kind" in q:
         return ShapeId.Q13
 
-    # Q11: Inverse - Ingredients used in [Cuisine]
-    if "ingredients used in" in q:
-        return ShapeId.Q11
-
-    # Q12: Inverse - Authors of [Cuisine]
-    if "authors of" in q:
-        return ShapeId.Q12
-
-    # Q9: Sorting (Popularity)
-    if "ranked by popularity" in q or "most popular" in q:
-        return ShapeId.Q9
-
     # Q10: Property filter (Time)
     if "under" in q and "minutes" in q:
         return ShapeId.Q10
-
-    # Q8: Conjunction (Author + Ingredient) - Must be before Q2
-    if has_author_cue and has_ingredient_cue:
-        return ShapeId.Q8
-
-    # Q6: Conjunction (Hierarchical Cuisine + Ingredient) - e.g., "Chinese recipes that use..."
-    if any(hc in q for hc in hierarchical_cuisines) and has_ingredient_cue:
-        return ShapeId.Q6
-
-    # Q5: Conjunction (Direct Cuisine + Ingredient) - e.g., "Sichuan recipes that use..."
-    if any(dc in q for dc in direct_cuisines) and has_ingredient_cue:
-        return ShapeId.Q5
 
     # Q7: Technique
     if "require" in q or has_technique_cue:

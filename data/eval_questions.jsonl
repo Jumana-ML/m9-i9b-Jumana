@@ -13,3 +13,8 @@
 {"question_id": "q13", "question_text": "Find recipes that use peppercorn or any subtype", "shape": "q13", "slots": {"ingredient": "peppercorn"}}
 {"question_id": "q14", "question_text": "Find recipes that use ginger but not garlic", "shape": "q14", "slots": {"ingredient": "ginger", "exclude_ingredient": "garlic"}}
 {"question_id": "q15", "question_text": "Find recipes optionally tagged with wok technique", "shape": "q15", "slots": {"technique": "wok"}}
+{"question_id": "q16", "question_text": "Find recipes by Maria Rossi that require wok technique", "shape": "q16", "slots": {"author": "Maria Rossi", "technique": "wok"}, "expected_row_count": 1}
+{"question_id": "q17", "question_text": "Find Italian recipes that use baking", "shape": "q17", "slots": {"cuisine": "Italian", "technique": "baking"}, "expected_row_count": 1}
+{"question_id": "q18", "question_text": "Find Asian recipes by Maria Rossi", "shape": "q18", "slots": {"cuisine": "Asian", "author": "Maria Rossi"}, "expected_row_count": 1}
+{"question_id": "q19", "question_text": "Find Italian recipes by Maria Rossi that use basil", "shape": "q19", "slots": {"cuisine": "Italian", "author": "Maria Rossi", "ingredient": "basil"}, "expected_row_count": 1}
+{"question_id": "q20", "question_text": "Find ingredients by Maria Rossi", "shape": "q20", "slots": {"author": "Maria Rossi"}, "expected_row_count": 5}
