@@ -27,6 +27,11 @@ class UnsupportedQueryError(Exception):
         "q13": "Find recipes that use <ingredient> or any subtype",
         "q14": "Find recipes that use <ingredient> but not <other-ingredient>",
         "q15": "Find recipes optionally tagged with <technique>",
+        "q16": "Find recipes by author <name> that require <technique>",
+        "q17": "Find <cuisine> recipes that use <technique>",
+        "q18": "Find <cuisine> recipes by author <name>",
+        "q19": "Find <cuisine> recipes by author <name> that use <ingredient>",
+        "q20": "Find ingredients used by author <name>"
     }
 
     def __init__(self, question_text: str, shape_names: Iterable[str] | None = None):

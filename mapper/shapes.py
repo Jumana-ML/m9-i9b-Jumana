@@ -31,6 +31,12 @@ class ShapeId(str, Enum):
     Q13 = "q13"  # ingredient hierarchy
     Q14 = "q14"  # negation via NOT EXISTS
     Q15 = "q15"  # OPTIONAL MATCH on technique
+    # Tier 1 Challenge Extensions (16-20)
+    Q16 = "q16"  # Author + Technique
+    Q17 = "q17"  # Cuisine + Technique
+    Q18 = "q18"  # Cuisine + Author
+    Q19 = "q19"  # Cuisine + Author + Ingredient (Multi-hop conjunction)
+    Q20 = "q20"  # Inverse: Ingredients used by specific Author
 
 
 # Canonical Cypher per shape. All RETURN columns include "recipe" as the
@@ -141,6 +147,42 @@ CANONICAL_CYPHER: dict[ShapeId, str] = {
         "OPTIONAL MATCH (r)-[:REQUIRES_TECHNIQUE]->(t:Technique {name: $technique}) "
         "RETURN r.name AS recipe, t.name AS technique "
         "ORDER BY r.name "
+        "LIMIT 50"
+    ),
+    # Challenge Tier 1 Templates
+    ShapeId.Q16: (
+        "MATCH (r:Recipe)-[:BY_AUTHOR]->(:Author {name: $author}) "
+        "MATCH (r)-[:REQUIRES_TECHNIQUE]->(:Technique {name: $technique}) "
+        "RETURN r.name AS recipe "
+        "ORDER BY r.name "
+        "LIMIT 50"
+    ),
+    ShapeId.Q17: (
+        "MATCH (r:Recipe)-[:OF_CUISINE]->(:Cuisine {name: $cuisine}) "
+        "MATCH (r)-[:REQUIRES_TECHNIQUE]->(:Technique {name: $technique}) "
+        "RETURN r.name AS recipe "
+        "ORDER BY r.name "
+        "LIMIT 50"
+    ),
+    ShapeId.Q18: (
+        "MATCH (r:Recipe)-[:OF_CUISINE]->(:Cuisine {name: $cuisine}) "
+        "MATCH (r)-[:BY_AUTHOR]->(:Author {name: $author}) "
+        "RETURN r.name AS recipe "
+        "ORDER BY r.name "
+        "LIMIT 50"
+    ),
+    ShapeId.Q19: (
+        "MATCH (r:Recipe)-[:OF_CUISINE]->(:Cuisine {name: $cuisine}) "
+        "MATCH (r)-[:BY_AUTHOR]->(:Author {name: $author}) "
+        "MATCH (r)-[:USES_INGREDIENT]->(:Ingredient {name: $ingredient}) "
+        "RETURN r.name AS recipe "
+        "ORDER BY r.name "
+        "LIMIT 50"
+    ),
+    ShapeId.Q20: (
+        "MATCH (a:Author {name: $author})<-[:BY_AUTHOR]-(r:Recipe)-[:USES_INGREDIENT]->(i:Ingredient) "
+        "RETURN DISTINCT i.name AS ingredient "
+        "ORDER BY i.name "
         "LIMIT 50"
     ),
 }

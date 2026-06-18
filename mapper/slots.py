@@ -14,7 +14,21 @@ See `data/eval_questions.jsonl` for the gold (question_text, shape, slots)
 triples used by the autograder.
 """
 
+import re
+import spacy
 from .shapes import ShapeId
+
+# Load spaCy model for NER (PERSON entities)
+try:
+    nlp = spacy.load("en_core_web_sm")
+except ImportError:
+    # Fallback if model not loaded in this environment yet
+    nlp = None
+
+# Canonical Vocabulary lists from the KG schema
+CUISINES = ["Italian", "Sichuan", "Chinese", "Asian", "Mexican", "French", "Japanese", "Mediterranean", "World"]
+INGREDIENTS = ["ginger", "garlic", "basil", "peppercorn", "tomato", "chicken", "soy sauce", "salt"]
+TECHNIQUES = ["wok", "roasting", "baking", "grilling"]
 
 
 def extract_slots(question: str, shape: ShapeId) -> dict:
@@ -40,12 +54,55 @@ def extract_slots(question: str, shape: ShapeId) -> dict:
     'italian'; 'ginger' not 'Ginger'). Match against the schema vocabulary
     rather than echoing the surface form of the question.
     """
-    # TODO (slot extraction):
-    # 1. For the given shape, list the parameter names you need to fill.
-    # 2. For each parameter, use a vocabulary list or a regex over the
-    #    question text to extract the value in canonical form.
+    slots = {}
+    q_lower = question.lower()
+
+    # Helper function for vocabulary matching
+    def find_canonical(text, vocab):
+        for item in vocab:
+            if item.lower() in text.lower():
+                return item
+        return None
+
+    # 1. & 2. Handle specific extraction logic based on shape
+    
+    # Extract Cuisine (Needed for Q3, Q4, Q5, Q6, Q9, Q11, Q12 + Tier 1: Q17, Q18, Q19)
+    if shape in [ShapeId.Q3, ShapeId.Q4, ShapeId.Q5, ShapeId.Q6, ShapeId.Q9, ShapeId.Q11, ShapeId.Q12, ShapeId.Q17, ShapeId.Q18, ShapeId.Q19]:
+        slots["cuisine"] = find_canonical(question, CUISINES)
+
+    # Extract Ingredient (Needed for Q1, Q5, Q6, Q8, Q13, Q14 + Tier 1: Q19)
+    if shape in [ShapeId.Q1, ShapeId.Q5, ShapeId.Q6, ShapeId.Q8, ShapeId.Q13, ShapeId.Q19]:
+        slots["ingredient"] = find_canonical(question, INGREDIENTS)
+
+    # Extract Author (Needed for Q2, Q8 + Tier 1: Q16, Q18, Q19, Q20)
+    if shape in [ShapeId.Q2, ShapeId.Q8, ShapeId.Q16, ShapeId.Q18, ShapeId.Q19, ShapeId.Q20] and nlp:
+        doc = nlp(question)
+        authors = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
+        if authors:
+            slots["author"] = authors[0]
+        else:
+            # Fallback if NER misses but "by [Name]" is present
+            match = re.search(r"by (?:author )?([A-Z][a-z]+ [A-Z][a-z]+)", question)
+            if match:
+                slots["author"] = match.group(1)
+
+    # Extract Technique (Needed for Q7, Q15 + Tier 1: Q16, Q17)
+    if shape in [ShapeId.Q7, ShapeId.Q15, ShapeId.Q16, ShapeId.Q17]:
+        slots["technique"] = find_canonical(question, TECHNIQUES)
+
+    # Special Case Q10: Numeric threshold
+    if shape == ShapeId.Q10:
+        match = re.search(r"under (\d+)", q_lower)
+        if match:
+            slots["max_minutes"] = int(match.group(1))
+
+    # Special Case Q14: Negation
+    if shape == ShapeId.Q14:
+        # Split to separate positive and negative ingredients
+        parts = re.split(r"but not|without", q_lower)
+        slots["ingredient"] = find_canonical(parts[0], INGREDIENTS)
+        if len(parts) > 1:
+            slots["exclude_ingredient"] = find_canonical(parts[1], INGREDIENTS)
+
     # 3. Return the dict.
-    raise NotImplementedError(
-        "extract_slots is not yet implemented — see the Integration Guide "
-        "Slot Extraction section."
-    )
+    return slots

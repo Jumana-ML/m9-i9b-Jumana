@@ -74,7 +74,7 @@ def _load_eval() -> list[dict]:
 
 
 EVAL = _load_eval()
-assert len(EVAL) == 15, f"eval_questions.jsonl must have 15 entries, has {len(EVAL)}"
+assert len(EVAL) == 20, f"eval_questions.jsonl must have 15 entries, has {len(EVAL)}"
 
 
 ADVERSARIAL_QUESTIONS = [
