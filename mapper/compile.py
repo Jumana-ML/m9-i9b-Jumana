@@ -35,13 +35,15 @@ def compile_to_cypher(shape: ShapeId, slots: dict) -> tuple[str, dict]:
       -> ("MATCH (r:Recipe)-[:USES_INGREDIENT]->(:Ingredient {name: $ingredient}) ...",
           {"ingredient": "ginger"})
     """
-    # TODO (compile):
     # 1. Look up the template in CANONICAL_CYPHER[shape]. Raise KeyError
     #    if missing — that's an upstream bug in detect_shape, not a
     #    compile-time mistake.
+    if shape not in CANONICAL_CYPHER:
+        raise KeyError(f"ShapeId {shape} not found in CANONICAL_CYPHER templates.")
+        
+    template = CANONICAL_CYPHER[shape]
+
     # 2. Return (template, slots). Do not string-format the template
     #    with the slot values; the driver binds $params at query time.
-    raise NotImplementedError(
-        "compile_to_cypher is not yet implemented — see the Integration "
-        "Guide Cypher Compilation section and the docstring above."
-    )
+    # Note: Returning a shallow copy of slots is a safe practice.
+    return template, dict(slots)

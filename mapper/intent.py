@@ -43,12 +43,81 @@ def detect_shape(question: str) -> ShapeId | None:
     UnsupportedQueryError in that case, which is the correct behaviour
     for an out-of-scope question.
     """
-    # TODO (intent classifier):
     # 1. Lowercase the question for pattern matching.
-    # 2. Apply rules in priority order — more-specific shapes (q14
-    #    "but not", q8 "by ... that use") before less-specific (q1, q3).
-    # 3. Return the matching ShapeId, or None if nothing matches.
-    raise NotImplementedError(
-        "detect_shape is not yet implemented — see the Integration Guide "
-        "Intent Classification section and the docstring above."
-    )
+    q = question.lower()
+
+    # Define vocabulary hints based on the Integration Guide
+    # These help distinguish between direct and hierarchical queries
+    hierarchical_cuisines = {"asian", "chinese"}
+    direct_cuisines = {"italian", "sichuan"} # Sichuan is direct in Q5 but hierarchical in Q12/Q4 context
+    
+    # Check for core entities/keywords presence
+    has_author_cue = "by author" in q or "by " in q or "authors of" in q
+    has_ingredient_cue = "use" in q or "with" in q
+    has_cuisine_cue = any(c in q for c in (hierarchical_cuisines | direct_cuisines))
+    has_technique_cue = "require" in q or "tagged with" in q or "technique" in q
+
+    # 2. Apply rules in priority order (Specific -> General)
+
+    # Q14: Negation (but not) - Must be before Q1/Q5/Q6/Q8
+    if "but not" in q or "without" in q:
+        return ShapeId.Q14
+
+    # Q15: Optional tagging
+    if "optionally tagged" in q:
+        return ShapeId.Q15
+
+    # Q13: Ingredient hierarchy (subtype/kind)
+    if "or any subtype" in q or "or any kind" in q:
+        return ShapeId.Q13
+
+    # Q11: Inverse - Ingredients used in [Cuisine]
+    if "ingredients used in" in q:
+        return ShapeId.Q11
+
+    # Q12: Inverse - Authors of [Cuisine]
+    if "authors of" in q:
+        return ShapeId.Q12
+
+    # Q9: Sorting (Popularity)
+    if "ranked by popularity" in q or "most popular" in q:
+        return ShapeId.Q9
+
+    # Q10: Property filter (Time)
+    if "under" in q and "minutes" in q:
+        return ShapeId.Q10
+
+    # Q8: Conjunction (Author + Ingredient) - Must be before Q2
+    if has_author_cue and has_ingredient_cue:
+        return ShapeId.Q8
+
+    # Q6: Conjunction (Hierarchical Cuisine + Ingredient) - e.g., "Chinese recipes that use..."
+    if any(hc in q for hc in hierarchical_cuisines) and has_ingredient_cue:
+        return ShapeId.Q6
+
+    # Q5: Conjunction (Direct Cuisine + Ingredient) - e.g., "Sichuan recipes that use..."
+    if any(dc in q for dc in direct_cuisines) and has_ingredient_cue:
+        return ShapeId.Q5
+
+    # Q7: Technique
+    if "require" in q or has_technique_cue:
+        return ShapeId.Q7
+
+    # Q4: Hierarchical Cuisine only
+    if any(hc in q for hc in hierarchical_cuisines):
+        return ShapeId.Q4
+
+    # Q3: Direct Cuisine only
+    if any(dc in q for dc in direct_cuisines):
+        return ShapeId.Q3
+
+    # Q2: Author only
+    if has_author_cue:
+        return ShapeId.Q2
+
+    # Q1: Ingredient only
+    if has_ingredient_cue:
+        return ShapeId.Q1
+
+    # 3. Return None if nothing matches
+    return None

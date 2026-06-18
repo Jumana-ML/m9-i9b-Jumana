@@ -13,6 +13,18 @@ import os
 import shutil
 import subprocess
 
+# Importing LangChain providers
+# These are available after pip install -r requirements-challenge.txt
+try:
+    from langchain_ollama import ChatOllama
+    from langchain_openai import ChatOpenAI
+    from langchain_anthropic import ChatAnthropic
+except ImportError:
+    # Fallback for CI environments where these might not be installed
+    ChatOllama = None
+    ChatOpenAI = None
+    ChatAnthropic = None
+
 
 class NoLLMClientAvailableError(RuntimeError):
     """No Ollama and no hosted-provider key is configured."""
@@ -65,9 +77,7 @@ def get_llm_client(model: str = "phi3:mini-4k-instruct-q4_K_M"):
     # Step 1: OLLAMA_HOST override
     ollama_host = os.environ.get("OLLAMA_HOST")
     if ollama_host:
-        # TODO: return ChatOllama(model=model, base_url=ollama_host)
-        # from langchain_community.chat_models import ChatOllama
-        raise NotImplementedError("Step 1 of get_llm_client — return ChatOllama bound to OLLAMA_HOST.")
+        return ChatOllama(model=model, base_url=ollama_host)
 
     # Step 2: local Ollama. Course-provided presence check.
     if shutil.which("ollama") is not None:
@@ -75,18 +85,15 @@ def get_llm_client(model: str = "phi3:mini-4k-instruct-q4_K_M"):
             raise OllamaModelMissingError(
                 f"Model {model!r} not pulled. Run: ollama pull {model}"
             )
-        # TODO: return ChatOllama(model=model)
-        raise NotImplementedError("Step 2 of get_llm_client — return ChatOllama bound to localhost.")
+        return ChatOllama(model=model)
 
     # Step 3: hosted OpenAI
     if os.environ.get("OPENAI_API_KEY"):
-        # TODO: return ChatOpenAI(...)
-        raise NotImplementedError("Step 3 of get_llm_client — return ChatOpenAI fallback.")
+        return ChatOpenAI(model_name="gpt-3.5-turbo")
 
     # Step 4: hosted Anthropic
     if os.environ.get("ANTHROPIC_API_KEY"):
-        # TODO: return ChatAnthropic(...)
-        raise NotImplementedError("Step 4 of get_llm_client — return ChatAnthropic fallback.")
+        return ChatAnthropic(model="claude-3-haiku-20240307")
 
     # Step 5: nothing configured — fail-loud with install guidance.
     raise NoLLMClientAvailableError(
